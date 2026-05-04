@@ -1,55 +1,37 @@
-import nodemailer from "nodemailer";
-import Invoice from "../models/invoiceModel.js";
-import { formatCurrency, formatDate } from "../utils/helpers.js";
+import * as brevo from '@getbrevo/brevo'
+import Invoice from '../models/invoiceModel.js'
+import { formatCurrency, formatDate } from '../utils/helpers.js'
 
 export const sendInvoiceEmail = async (req, res) => {
   try {
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    const invoice = await Invoice.findOne({ _id: req.params.id, userId: req.user._id })
+      .populate('clientId', 'name email company')
+      .populate('userId', 'name email businessName phone')
 
-    const invoice = await Invoice.findOne({
-      _id: req.params.id,
-      userId: req.user._id,
-    })
-      .populate("clientId", "name email company")
-      .populate("userId", "name email businessName phone");
+    if (!invoice) return res.json({ success: false, message: 'Invoice not found' })
 
-    if (!invoice)
-      return res.json({ success: false, message: "Invoice not found" });
+    const apiInstance = new brevo.TransactionalEmailsApi()
+    apiInstance.authentications['api-key'].apiKey = process.env.BREVO_API_KEY
 
-    const itemsHTML = invoice.items
-      .map(
-        (item) => `
+    const itemsHTML = invoice.items.map(item => `
       <tr>
         <td style="padding:8px;border-bottom:1px solid #eee">${item.description}</td>
         <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td>
         <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${formatCurrency(item.rate)}</td>
         <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${formatCurrency(item.quantity * item.rate)}</td>
       </tr>
-    `,
-      )
-      .join("");
+    `).join('')
 
     const html = `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
         <h1 style="color:#6c63ff;font-size:28px;margin-bottom:4px">Billr</h1>
         <p style="color:#888;font-size:13px;margin-bottom:24px">Invoice smart. Get paid faster.</p>
-
         <div style="background:#f8f9fa;border-radius:8px;padding:16px;margin-bottom:24px">
           <h2 style="margin:0 0 4px;font-size:20px">${invoice.invoiceNumber}</h2>
           <p style="margin:0;color:#888;font-size:13px">Due: ${formatDate(invoice.dueDate)} · Status: ${invoice.status}</p>
         </div>
-
         <p>Hi <strong>${invoice.clientId.name}</strong>,</p>
         <p>Please find your invoice from <strong>${invoice.userId.businessName || invoice.userId.name}</strong> below.</p>
-
         <table style="width:100%;border-collapse:collapse;margin:24px 0">
           <thead>
             <tr style="background:#f8f9fa">
@@ -61,33 +43,28 @@ export const sendInvoiceEmail = async (req, res) => {
           </thead>
           <tbody>${itemsHTML}</tbody>
         </table>
-
         <div style="text-align:right;margin-bottom:24px">
           <p style="color:#888;font-size:13px">Subtotal: <strong>${formatCurrency(invoice.subtotal)}</strong></p>
-          <p style="color:#888;font-size:13px">Tax (${invoice.tax}%): <strong>${formatCurrency((invoice.subtotal * invoice.tax) / 100)}</strong></p>
+          <p style="color:#888;font-size:13px">Tax (${invoice.tax}%): <strong>${formatCurrency(invoice.subtotal * invoice.tax / 100)}</strong></p>
           <p style="font-size:18px;font-weight:700;color:#6c63ff">Total: ${formatCurrency(invoice.total)}</p>
         </div>
-
-        ${invoice.notes ? `<p style="color:#888;font-size:13px;font-style:italic">${invoice.notes}</p>` : ""}
-
+        ${invoice.notes ? `<p style="color:#888;font-size:13px;font-style:italic">${invoice.notes}</p>` : ''}
         <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
         <p style="color:#888;font-size:12px">Sent via Billr · ${invoice.userId.email}</p>
       </div>
-    `;
-    console.log("Sending to:", invoice.clientId.email);
-    console.log("From:", process.env.EMAIL_USER);
+    `
 
-    await transporter.sendMail({
-      from: `"${invoice.userId.businessName || invoice.userId.name}" <${process.env.EMAIL_USER}>`,
-      to: invoice.clientId.email,
-      subject: `Invoice ${invoice.invoiceNumber} from ${invoice.userId.businessName || invoice.userId.name}`,
-      html,
-    });
+    const sendSmtpEmail = new brevo.SendSmtpEmail()
+    sendSmtpEmail.subject = `Invoice ${invoice.invoiceNumber} from ${invoice.userId.businessName || invoice.userId.name}`
+    sendSmtpEmail.htmlContent = html
+    sendSmtpEmail.sender = { name: invoice.userId.businessName || invoice.userId.name, email: process.env.EMAIL_USER }
+    sendSmtpEmail.to = [{ email: invoice.clientId.email, name: invoice.clientId.name }]
 
-    await Invoice.findByIdAndUpdate(invoice._id, { status: "Sent" });
+    await apiInstance.sendTransacEmail(sendSmtpEmail)
+    await Invoice.findByIdAndUpdate(invoice._id, { status: 'Sent' })
 
-    res.json({ success: true, message: "Invoice sent successfully" });
+    res.json({ success: true, message: 'Invoice sent successfully' })
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    res.json({ success: false, message: error.message })
   }
-};
+}
