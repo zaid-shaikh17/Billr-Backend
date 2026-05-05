@@ -40,12 +40,22 @@ export const getInvoices = async (req, res) => {
 }
 
 // Get single invoice
-export const getInvoice = async (req, res) => {
+export const getInvoices = async (req, res) => {
   try {
-    const invoice = await Invoice.findOne({ _id: req.params.id, userId: req.user._id })
-      .populate('clientId', 'name email company phone')
-    if (!invoice) return res.json({ success: false, message: 'Invoice not found' })
-    res.json({ success: true, invoice })
+    const now = new Date()
+    await Invoice.updateMany(
+      {
+        userId: req.user._id,
+        status: { $in: ['Draft', 'Sent'] },
+        dueDate: { $lt: now }
+      },
+      { status: 'Overdue' }
+    )
+
+    const invoices = await Invoice.find({ userId: req.user._id })
+      .populate('clientId', 'name email company')
+      .sort({ createdAt: -1 })
+    res.json({ success: true, invoices })
   } catch (error) {
     res.json({ success: false, message: error.message })
   }
