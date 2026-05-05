@@ -53,3 +53,20 @@ export const login = async (req, res) => {
     res.json({ success: false, message: error.message })
   }
 }
+
+//Updated Profile
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, businessName, phone } = req.body
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { name, businessName, phone },
+      { new: true }
+    ).select('-password')
+
+    res.json({ success: true, user })
+  } catch (error) {
+    res.json({ success: false, message: error.message })
+  }
+}

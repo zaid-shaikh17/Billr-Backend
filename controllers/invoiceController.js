@@ -27,19 +27,19 @@ export const createInvoice = async (req, res) => {
   }
 }
 
-// Get all invoices
-export const getInvoices = async (req, res) => {
+// Get single invoice
+export const getInvoice = async (req, res) => {
   try {
-    const invoices = await Invoice.find({ userId: req.user._id })
-      .populate('clientId', 'name email company')
-      .sort({ createdAt: -1 })
-    res.json({ success: true, invoices })
+    const invoice = await Invoice.findOne({ _id: req.params.id, userId: req.user._id })
+      .populate('clientId', 'name email phone company')
+    if (!invoice) return res.json({ success: false, message: 'Invoice not found' })
+    res.json({ success: true, invoice })
   } catch (error) {
     res.json({ success: false, message: error.message })
   }
 }
 
-// Get single invoice
+// Get all invoice
 export const getInvoices = async (req, res) => {
   try {
     const now = new Date()
