@@ -9,4 +9,4 @@ const clientSchema = new mongoose.Schema({
   notes: { type: String, default: '' }
 }, { timestamps: true })
 
-export default mongoose.model('Client', clientSchema)
+export default mongoose.model('Client', clientSchema.index({userId: 1}))

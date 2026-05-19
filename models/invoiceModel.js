@@ -19,4 +19,4 @@ const invoiceSchema = new mongoose.Schema({
   notes: { type: String, default: '' }
 }, { timestamps: true })
 
-export default mongoose.model('Invoice', invoiceSchema)
+export default mongoose.model('Invoice', invoiceSchema.index({userId:1, status:1}))
