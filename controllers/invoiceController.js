@@ -86,3 +86,16 @@ export const deleteInvoice = async (req, res) => {
     res.json({ success: false, message: error.message })
   }
 }
+
+// Get invoices by client
+export const getInvoicesByClient = async (req, res) => {
+  try {
+    const invoices = await Invoice.find({
+      userId: req.user._id,
+      clientId: req.params.clientId
+    }).sort({ createdAt: -1 })
+    res.json({ success: true, invoices })
+  } catch (error) {
+    res.json({ success: false, message: error.message })
+  }
+}
