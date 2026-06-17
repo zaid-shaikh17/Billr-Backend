@@ -61,6 +61,27 @@ export const getInvoices = async (req, res) => {
   }
 }
 
+// update invoice 
+export const updateInvoice = async (req, res) => {
+  try {
+    const { items, tax, dueDate, notes } = req.body
+
+    const subtotal = items.reduce((sum, item) => sum + item.quantity * item.rate, 0)
+    const total = subtotal + (subtotal * tax) / 100
+
+    const invoice = await Invoice.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user._id },
+      { items, tax, dueDate, notes, subtotal, total },
+      { new: true }
+    ).populate('clientId', 'name email company')
+
+    if (!invoice) return res.json({ success: false, message: 'Invoice not found' })
+    res.json({ success: true, invoice })
+  } catch (error) {
+    res.json({ success: false, message: error.message })
+  }
+} 
+
 // Update invoice status
 export const updateInvoiceStatus = async (req, res) => {
   try {

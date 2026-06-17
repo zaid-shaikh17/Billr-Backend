@@ -1,5 +1,5 @@
 import express from 'express'
-import { createInvoice, getInvoices, getInvoice, updateInvoiceStatus, deleteInvoice, getInvoicesByClient } from '../controllers/invoiceController.js'
+import { createInvoice, getInvoices, getInvoice, updateInvoiceStatus, deleteInvoice, getInvoicesByClient, updateInvoice } from '../controllers/invoiceController.js'
 import protect from '../middleware/authMiddleware.js'
 
 const router = express.Router()
@@ -11,6 +11,7 @@ router.get('/', getInvoices)
 router.get('/client/:clientId', getInvoicesByClient)
 router.get('/:id', getInvoice)
 router.put('/:id', updateInvoiceStatus)
+router.put('/:id/edit', updateInvoice)
 router.delete('/:id', deleteInvoice)
 
 export default router
