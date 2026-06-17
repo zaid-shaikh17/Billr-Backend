@@ -40,7 +40,7 @@ export const updateClient = async (req, res) => {
     const client = await Client.findOneAndUpdate(
       { _id: req.params.id, userId: req.user._id },
       req.body,
-      { new: true }
+      { returnDocument: 'after' }
     )
     if (!client) return res.json({ success: false, message: 'Client not found' })
     res.json({ success: true, client })

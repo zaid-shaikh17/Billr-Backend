@@ -62,7 +62,7 @@ export const updateProfile = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { name, businessName, phone },
-      { new: true }
+      { returnDocument: 'after' }
     ).select('-password')
 
     res.json({ success: true, user })

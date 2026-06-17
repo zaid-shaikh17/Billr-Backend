@@ -72,7 +72,7 @@ export const updateInvoice = async (req, res) => {
     const invoice = await Invoice.findOneAndUpdate(
       { _id: req.params.id, userId: req.user._id },
       { items, tax, dueDate, notes, subtotal, total },
-      { new: true }
+      { returnDocument: 'after' }
     ).populate('clientId', 'name email company')
 
     if (!invoice) return res.json({ success: false, message: 'Invoice not found' })
@@ -88,7 +88,7 @@ export const updateInvoiceStatus = async (req, res) => {
     const invoice = await Invoice.findOneAndUpdate(
       { _id: req.params.id, userId: req.user._id },
       { status: req.body.status },
-      { new: true }
+      { returnDocument: 'after' }
     )
     if (!invoice) return res.json({ success: false, message: 'Invoice not found' })
     res.json({ success: true, invoice })
