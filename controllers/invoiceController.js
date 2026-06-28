@@ -1,9 +1,10 @@
 import Invoice from '../models/invoiceModel.js'
+import User from '../models/userModel.js'
 
 // Generate invoice number
-const generateInvoiceNumber = async () => {
-  const count = await Invoice.countDocuments()
-  return `INV-${String(count + 1).padStart(4, '0')}`
+const generateInvoiceNumber = async (userId, prefix) => {
+  const count = await Invoice.countDocuments({ userId })
+  return `${prefix}-${String(count + 1).padStart(4, '0')}`
 }
 
 // Create invoice
@@ -11,9 +12,10 @@ export const createInvoice = async (req, res) => {
   try {
     const { clientId, items, tax, dueDate, notes } = req.body
 
+    const user = await User.findById(req.user._id)
     const subtotal = items.reduce((sum, item) => sum + item.quantity * item.rate, 0)
     const total = subtotal + (subtotal * tax) / 100
-    const invoiceNumber = await generateInvoiceNumber()
+    const invoiceNumber = await generateInvoiceNumber(req.user._id, user.invoicePrefix || 'INV')
 
     const invoice = await Invoice.create({
       userId: req.user._id,

@@ -58,10 +58,10 @@ export const login = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name, businessName, phone } = req.body
+    const { name, businessName, phone, invoicePrefix } = req.body
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { name, businessName, phone },
+      { name, businessName, phone, invoicePrefix },
       { returnDocument: 'after' }
     ).select('-password')
 
